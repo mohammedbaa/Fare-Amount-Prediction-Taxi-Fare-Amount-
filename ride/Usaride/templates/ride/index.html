@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Predict Taxi Fare</title>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+           body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-top: 20px;
+        }
+        #map {
+            height: 500px;
+            margin: 0 auto;
+            width: 80%;
+            max-width: 800px;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        form {
+            text-align: center;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #distance-display, #time-display {
+            font-weight: bold;
+            text-align: center;
+        }
+        .popup-content {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Predict Taxi Fare</h1>
+    <div id="map"></div>
+    <form id="ride-form" method="post" action="/">
+        {% csrf_token %}
+        <input type="hidden" id="pickup_latitude" name="pickup_latitude">
+        <input type="hidden" id="pickup_longitude" name="pickup_longitude">
+        <input type="hidden" id="dropoff_latitude" name="dropoff_latitude">
+        <input type="hidden" id="dropoff_longitude" name="dropoff_longitude">
+        <input type="hidden" id="distance" name="distance">
+        <input type="hidden" id="day" name="day">
+        <input type="hidden" id="hour" name="hour">
+        <button type="submit">Predict Fare</button>
+    </form>
+    
+    <p id="distance-display">Distance: Not selected</p>
+    <p id="time-display">Current Time: </p>
+
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js'></script>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1Ijoib21hcmltb2hhbW1hZDMyMSIsImEiOiJjbHdsNHZjbHgxYjl6MmptbW1sMm9iaXJpIn0.qSH0wRTgz3bUJhdnKdv0Gg';
+
+        // Initialize Leaflet map
+        var map = L.map('map').setView([40.7128, -74.0060], 13); // NYC coordinates
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 18,
+        }).addTo(map);
+
+        var pickupMarker, dropoffMarker;
+
+        function onMapClick(e) {
+            if (!pickupMarker) {
+                pickupMarker = L.marker(e.latlng, {draggable: true}).addTo(map);
+                pickupMarker.bindPopup("Pickup Location").openPopup();
+                document.getElementById('pickup_latitude').value = e.latlng.lat;
+                document.getElementById('pickup_longitude').value = e.latlng.lng;
+                pickupMarker.on('dragend', function(event) {
+                    var position = event.target.getLatLng();
+                    document.getElementById('pickup_latitude').value = position.lat;
+                    document.getElementById('pickup_longitude').value = position.lng;
+                });
+            } else if (!dropoffMarker) {
+                dropoffMarker = L.marker(e.latlng, {draggable: true}).addTo(map);
+                dropoffMarker.bindPopup("Dropoff Location").openPopup();
+                document.getElementById('dropoff_latitude').value = e.latlng.lat;
+                document.getElementById('dropoff_longitude').value = e.latlng.lng;
+                dropoffMarker.on('dragend', function(event) {
+                    var position = event.target.getLatLng();
+                    document.getElementById('dropoff_latitude').value = position.lat;
+                    document.getElementById('dropoff_longitude').value = position.lng;
+                });
+
+                // Calculate the route using Mapbox API
+                var url = `https://api.mapbox.com/directions/v5/mapbox/driving/${pickupMarker.getLatLng().lng},${pickupMarker.getLatLng().lat};${dropoffMarker.getLatLng().lng},${dropoffMarker.getLatLng().lat}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        var distance = data.routes[0].distance / 1000; // Convert meters to kilometers
+                        document.getElementById('distance').value = distance;
+                        document.getElementById('distance-display').innerText = `Distance: ${distance.toFixed(2)} km`;
+
+                        // Add route to the map
+                        var routeLayer = L.geoJSON(data.routes[0].geometry).addTo(map);
+                    });
+            }
+        }
+
+        map.on('click', onMapClick);
+
+        // Function to set current day and hour
+        function setCurrentDayAndHour() {
+            var now = new Date();
+            var day = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+            var hour = now.getHours(); // 0 to 23
+
+            document.getElementById('day').value = day;
+            document.getElementById('hour').value = hour;
+
+            var days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+            document.getElementById('time-display').innerText = `Current Time: ${days[day]}, ${hour}:00`;
+        }
+
+        // Set current day and hour on page load
+        window.onload = setCurrentDayAndHour;
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Predict Taxi Fare</title>
+    <link href='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.css' rel='stylesheet' />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        h1 {
+            color: #333;
+        }
+        #map {
+            height: 400px;
+            margin-bottom: 20px;
+        }
+        form {
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #distance-display {
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Predict Taxi Fare</h1>
+    <div id="map"></div>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <input type="hidden" id="id_pickup_latitude" name="pickup_latitude">
+        <input type="hidden" id="id_pickup_longitude" name="pickup_longitude">
+        <input type="hidden" id="id_dropoff_latitude" name="dropoff_latitude">
+        <input type="hidden" id="id_dropoff_longitude" name="dropoff_longitude">
+        <input type="hidden" id="distance" name="distance">
+        <button type="submit">Predict Fare</button>
+    </form>
+    
+    <p id="distance-display">Distance: Not selected</p>
+
+    <script src='https://api.mapbox.com/mapbox-gl-js/v2.4.1/mapbox-gl.js'></script>
+    <script>
+        mapboxgl.accessToken = 'pk.eyJ1Ijoib21hcmltb2hhbW1hZDMyMSIsImEiOiJjbHdsNHZjbHgxYjl6MmptbW1sMm9iaXJpIn0.qSH0wRTgz3bUJhdnKdv0Gg';
+        var map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/mapbox/streets-v11',
+            center: [-74.0060, 40.7128], // New York City coordinates
+            zoom: 12
+        });
+
+        var startMarker, endMarker, routeLayer;
+
+        map.on('click', function(e) {
+            if (!startMarker) {
+                startMarker = new mapboxgl.Marker({ color: 'green' })
+                    .setLngLat(e.lngLat)
+                    .addTo(map);
+                document.getElementById('id_pickup_latitude').value = e.lngLat.lat;
+                document.getElementById('id_pickup_longitude').value = e.lngLat.lng;
+            } else if (!endMarker) {
+                endMarker = new mapboxgl.Marker({ color: 'red' })
+                    .setLngLat(e.lngLat)
+                    .addTo(map);
+                document.getElementById('id_dropoff_latitude').value = e.lngLat.lat;
+                document.getElementById('id_dropoff_longitude').value = e.lngLat.lng;
+
+                var url = `https://api.mapbox.com/directions/v5/mapbox/driving/${startMarker.getLngLat().lng},${startMarker.getLngLat().lat};${endMarker.getLngLat().lng},${endMarker.getLngLat().lat}?geometries=geojson&access_token=${mapboxgl.accessToken}`;
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        var distance = data.routes[0].distance / 1000; // Convert meters to kilometers
+                        document.getElementById('distance').value = distance;
+                        document.getElementById('distance-display').innerText = `Distance: ${distance.toFixed(2)} km`;
+
+                        // Add route to the map
+                        if (routeLayer) {
+                            map.removeLayer(routeLayer);
+                            map.removeSource('route');
+                        }
+                        routeLayer = {
+                            id: 'route',
+                            type: 'line',
+                            source: {
+                                type: 'geojson',
+                                data: {
+                                    type: 'Feature',
+                                    properties: {},
+                                    geometry: data.routes[0].geometry
+                                }
+                            },
+                            layout: {
+                                'line-join': 'round',
+                                'line-cap': 'round'
+                            },
+                            paint: {
+                                'line-color': '#888',
+                                'line-width': 6
+                            }
+                        };
+                        map.addLayer(routeLayer);
+                    });
+            }
+        });
+    </script>
+</body>
+</html> -->
